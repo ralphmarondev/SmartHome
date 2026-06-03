@@ -1,7 +1,7 @@
 <?php
 require_once "connection.php";
 
-$message = "I was clicked";
+$message = $_POST['message'];
 $sql = "INSERT INTO logs (message) VALUES (?)";
 
 $stmt = $mysqli->prepare($sql);
