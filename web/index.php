@@ -25,11 +25,21 @@
 
 	<!-- Your Script -->
 	<script>
-	$(document).ready(function() {
-		$("#btnTest").click(function() {
-			$("#title").text("Welcome to Smart Home!");
+		$(document).ready(function() {
+			$("#btnTest").click(function() {
+				$.ajax({
+					url: "api/create.php",
+					type: "POST",
+					success: function(response) {
+						$("#title").text("Saved to database!");
+						console.log(response);
+					},
+					error: function() {
+						$("#title").text("Error saving data!");
+					}
+				})
+			});
 		});
-	});
 	</script>
 
 </body>
