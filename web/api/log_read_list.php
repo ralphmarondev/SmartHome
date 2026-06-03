@@ -1,5 +1,4 @@
 <?php
-
 require_once "connection.php";
 
 $sql = "
@@ -15,7 +14,6 @@ ORDER BY l.id DESC
 ";
 
 $result = $mysqli->query($sql);
-
 $data = [];
 
 while ($row = $result->fetch_assoc()) {
@@ -23,7 +21,6 @@ while ($row = $result->fetch_assoc()) {
 }
 
 header("Content-Type: application/json");
-
 echo json_encode($data);
 
 $mysqli->close();
