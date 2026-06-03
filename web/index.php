@@ -12,66 +12,21 @@
 	<div class="container py-4">
 		<div class="mb-4">
 			<h1 class="fw-bold">🏠 Smart Home Dashboard</h1>
-			<p class="text-muted">Monitor and control your smart home devices.</p>
+			<p class="text-muted">
+				Monitor and control your smart home devices.
+			</p>
 		</div>
 
-		<div class="row g-3 mb-4">
-			<div class="col-md-4">
-				<div class="card shadow-sm border-0 h-100">
-					<div class="card-body text-center">
-						<div style="font-size: 4rem;">💡</div>
-						<h4>Light</h4>
-						<span id="lightStatus" class="badge bg-secondary fs-6">
-							OFF
-						</span>
-						<div class="mt-3">
-							<button id="btnLight" class="btn btn-warning">
-								Toggle Light
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="col-md-4">
-				<div class="card shadow-sm border-0 h-100">
-					<div class="card-body text-center">
-						<div style="font-size: 4rem;">🌀</div>
-						<h4>Fan</h4>
-						<span id="fanStatus" class="badge bg-secondary fs-6">
-							OFF
-						</span>
-						<div class="mt-3">
-							<button id="btnFan" class="btn btn-info">
-								Toggle Fan
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="col-md-4">
-				<div class="card shadow-sm border-0 h-100">
-					<div class="card-body text-center">
-						<div style="font-size: 4rem;">🚪</div>
-						<h4>Door</h4>
-						<span id="doorStatus" class="badge bg-secondary fs-6">
-							CLOSED
-						</span>
-						<div class="mt-3">
-							<button id="btnDoor" class="btn btn-success">
-								Toggle Door
-							</button>
-						</div>
-					</div>
-				</div>
-			</div>
+		<!-- Devices -->
+		<div id="devicesContainer" class="row g-3 mb-4">
 		</div>
 
+		<!-- Status Message -->
 		<div class="mb-3">
 			<span id="statusMessage"></span>
 		</div>
 
+		<!-- Logs -->
 		<div class="card shadow-sm border-0">
 			<div class="card-body">
 				<h4 class="mb-3">📋 Activity Logs</h4>
@@ -99,50 +54,92 @@
 	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 	<script>
-	let lightOn = false;
-	let fanOn = false;
-	let doorOpen = false;
+	function getDeviceIcon(type) {
+		switch (type) {
+			case "LIGHT":
+				return "💡";
+			case "FAN":
+				return "🌀";
+			case "DOOR":
+				return "🚪";
+			default:
+				return "🔌";
+		}
+	}
 
-	function saveLog(message) {
+	function loadDevices() {
 		$.ajax({
-			url: "api/create.php",
-			type: "POST",
-			data: {
-				message: message
-			},
-			success: function() {
-				$("#statusMessage")
-					.html('<span class="text-success">Action saved successfully.</span>');
-				loadLogs();
+			url: "api/device_get_list.php",
+			type: "GET",
+			dataType: "json",
+			success: function(devices) {
+				let html = "";
+				devices.forEach(function(device) {
+					let statusText =
+						device.type === "DOOR" ?
+						(device.status == 1 ? "OPEN" : "CLOSED") :
+						(device.status == 1 ? "ON" : "OFF");
+					let badgeClass =
+						device.status == 1 ?
+						"bg-success" :
+						"bg-secondary";
+					html += `
+										<div class="col-md-4">
+												<div class="card shadow-sm border-0 h-100">
+														<div class="card-body text-center">
+																<div style="font-size:4rem">
+																		${getDeviceIcon(device.type)}
+																</div>
+																<h4>${device.name}</h4>
+																<span class="badge ${badgeClass} fs-6">
+																		${statusText}
+																</span>
+																<div class="mt-3">
+																		<button
+																				class="btn btn-primary btn-device-toggle"
+																				data-id="${device.id}"
+																				data-status="${device.status}">
+																				Toggle
+																		</button>
+																</div>
+														</div>
+												</div>
+										</div>
+								`;
+				});
+				$("#devicesContainer").html(html);
 			},
 			error: function() {
-				$("#statusMessage")
-					.html('<span class="text-danger">Failed to save action.</span>');
+				$("#statusMessage").html(
+					'<span class="text-danger">Failed to load devices.</span>'
+				);
 			}
 		});
 	}
 
 	function loadLogs() {
 		$.ajax({
-			url: "api/read_list.php",
+			url: "api/log_read_list.php",
 			type: "GET",
 			dataType: "json",
 			success: function(data) {
 				let rows = "";
 				if (data.length === 0) {
-					rows = `<tr>
+					rows = `
+									<tr>
 											<td colspan="2" class="text-center">
 													No logs found
 											</td>
-									</tr>`;
+									</tr>
+							`;
 				} else {
 					data.forEach(function(log) {
 						rows += `
-										<tr>
-												<td>${log.created_at}</td>
-												<td>${log.message}</td>
-										</tr>
-								`;
+											<tr>
+													<td>${log.created_at}</td>
+													<td>${log.message}</td>
+											</tr>
+									`;
 					});
 				}
 				$("#logsTable").html(rows);
@@ -150,61 +147,40 @@
 		});
 	}
 
+	$(document).on(
+		"click",
+		".btn-device-toggle",
+		function() {
+			let deviceId = $(this).data("id");
+			let currentStatus = $(this).data("status");
+			let newStatus = currentStatus == 1 ? 0 : 1;
+
+			$.ajax({
+				url: "api/device_update.php",
+				type: "POST",
+				data: {
+					device_id: deviceId,
+					status: newStatus
+				},
+				success: function() {
+					$("#statusMessage").html(
+						'<span class="text-success">Device updated successfully.</span>'
+					);
+					loadDevices();
+					loadLogs();
+				},
+				error: function() {
+					$("#statusMessage").html(
+						'<span class="text-danger">Failed to update device.</span>'
+					);
+				}
+			});
+		}
+	);
+
 	$(document).ready(function() {
+		loadDevices();
 		loadLogs();
-		$("#btnLight").click(function() {
-			lightOn = !lightOn;
-
-			if (lightOn) {
-				$("#lightStatus")
-					.removeClass("bg-secondary")
-					.addClass("bg-warning text-dark")
-					.text("ON");
-				saveLog("Light turned ON");
-			} else {
-				$("#lightStatus")
-					.removeClass("bg-warning text-dark")
-					.addClass("bg-secondary")
-					.text("OFF");
-				saveLog("Light turned OFF");
-			}
-		});
-
-		$("#btnFan").click(function() {
-			fanOn = !fanOn;
-
-			if (fanOn) {
-				$("#fanStatus")
-					.removeClass("bg-secondary")
-					.addClass("bg-info")
-					.text("ON");
-				saveLog("Fan turned ON");
-			} else {
-				$("#fanStatus")
-					.removeClass("bg-info")
-					.addClass("bg-secondary")
-					.text("OFF");
-				saveLog("Fan turned OFF");
-			}
-		});
-
-		$("#btnDoor").click(function() {
-			doorOpen = !doorOpen;
-
-			if (doorOpen) {
-				$("#doorStatus")
-					.removeClass("bg-secondary")
-					.addClass("bg-success")
-					.text("OPEN");
-				saveLog("Door opened");
-			} else {
-				$("#doorStatus")
-					.removeClass("bg-success")
-					.addClass("bg-secondary")
-					.text("CLOSED");
-				saveLog("Door closed");
-			}
-		});
 	});
 	</script>
 </body>
