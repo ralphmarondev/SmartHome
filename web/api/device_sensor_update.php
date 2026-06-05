@@ -1,13 +1,16 @@
 <?php
 require_once "connection.php";
 
-$device_id = isset($_POST["device_id"])
-	? (int)$_POST["device_id"]
+$device_id = isset($_REQUEST["device_id"])
+	? (int)$_REQUEST["device_id"]
 	: 0;
 
-$status = isset($_POST["status"])
-	? (int)$_POST["status"]
+$status = isset($_REQUEST["status"])
+	? (int)$_REQUEST["status"]
 	: 0;
+
+echo "Device ID: " . $device_id . "<br>";
+echo "Status: " . $status . "<br>";
 
 if ($device_id <= 0) {
 	echo json_encode([
