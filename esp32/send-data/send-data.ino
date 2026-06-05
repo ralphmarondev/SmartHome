@@ -1,10 +1,11 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
+#define LIGHT 2
 
-const char* WIFI_SSID = "MY_WIFI";
-const char* WIFI_PASSWORD = "12345678";
+const char* WIFI_SSID = "WIFI_NAME";
+const char* WIFI_PASSWORD = "WIFI_PASSWORD";
 
-const char* API_URL = "http://192.168.1.100/smart-home/web/api/device_sensor_update.php";
+const char* API_URL = "http://192.168.1.149/smart-home/web/api/device_sensor_update.php";
 
 bool statusValue = false;
 
@@ -24,6 +25,7 @@ void setup() {
   Serial.println("Connected!");
   Serial.print("IP Address: ");
   Serial.println(WiFi.localIP());
+  pinMode(LIGHT, OUTPUT);
 }
 
 void loop() {
@@ -36,7 +38,6 @@ void loop() {
       "application/x-www-form-urlencoded");
 
     String postData = "device_id=1&status=" + String(statusValue ? 1 : 0);
-
     Serial.println("--------------------");
     Serial.println("Sending:");
     Serial.println(postData);
@@ -52,7 +53,8 @@ void loop() {
       Serial.println("Server Response:");
       Serial.println(response);
     } else {
-      Serial.println("Request failed");
+      Serial.print("Request failed: ");
+      Serial.println(http.errorToString(httpCode));
     }
 
     http.end();
@@ -62,5 +64,11 @@ void loop() {
     Serial.println("WiFi disconnected");
   }
 
-  delay(5000);
+  if (statusValue) {
+    digitalWrite(LIGHT, HIGH);
+  } else {
+    digitalWrite(LIGHT, LOW);
+  }
+  delay(10000);
+  statusValue = !statusValue;
 }
